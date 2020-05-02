@@ -1,26 +1,25 @@
 package client
 
 import (
+	"context"
 	"core_x/contract"
 	"core_x/contract/proto"
 	"core_x/errors"
-	"context"
 	"io"
 )
 
 type ClientHook struct {
 	stream proto.CoreService_HooksServer
-	id string
-	token string
+	id     string
+	token  string
 	module string
 
 	list chan *proto.HookStream
 }
 
-
 func (c ClientHook) Recv(ctx context.Context, callback contract.CallBackFuncEvent) error {
 	go func() {
-		for  {
+		for {
 			event, err := c.stream.Recv()
 			if err == io.EOF {
 				callback(event, true)
@@ -33,20 +32,20 @@ func (c ClientHook) Recv(ctx context.Context, callback contract.CallBackFuncEven
 	return nil
 }
 
-func NewClientHook(id string, token string, module string, stream proto.CoreService_HooksServer) *ClientHook  {
+func NewClientHook(id string, token string, module string, stream proto.CoreService_HooksServer) *ClientHook {
 	client := &ClientHook{
 		stream: stream,
 		id:     id,
 		token:  token,
 		module: module,
-		list: make(chan *proto.HookStream),
+		list:   make(chan *proto.HookStream),
 	}
 
 	return client
 }
 
-func (c ClientHook) Loop() error  {
-	for  {
+func (c ClientHook) Loop() error {
+	for {
 		event, err := c.stream.Recv()
 		if err == io.EOF {
 			return nil
@@ -79,28 +78,23 @@ func (c ClientHook) Send(event *proto.Event) error {
 }
 
 func (c ClientHook) RecvWithIdEvent(ctx context.Context, id string) (*proto.Event, error) {
-	var event proto.Event
-	for  {
+	for {
 		select {
-			case <- ctx.Done(): {
+		case <-ctx.Done():
+			{
 				return nil, errors.Error{
 					Message: "TimeOut",
-					Code: errors.TIMEOUT,
+					Code:    errors.TIMEOUT,
 				}
 			}
-			case event = <- c.list: {
-				if event.Id == id {
-					break;
+		case event := <-c.list:
+			{
+				if event.Data.Id == id {
+					return event.Data, nil
 				}
 			}
 		}
 	}
 
-	return &event, nil
+	return nil, nil
 }
-
-
-
-
-
-

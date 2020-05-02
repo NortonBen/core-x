@@ -8,13 +8,14 @@ import (
 	"core_x/errors"
 	"core_x/models"
 	"core_x/utils"
+	"github.com/urfave/cli/v2"
 	"io"
 	"log"
 	"time"
 )
 
 type CoreHandler struct {
-	ctx context.Context
+	ctx            context.Context
 	actionManager  contract.IActionManager
 	blockManager   contract.IBlockManager
 	hookManager    contract.IHookManager
@@ -23,7 +24,45 @@ type CoreHandler struct {
 	moduleManager  contract.IModuleManager
 }
 
-func (c CoreHandler) EventStream(req *proto.EventStreamRequest,stream proto.CoreService_EventStreamServer) error {
+func NewCoreHandler() contract.IModule {
+	return &CoreHandler{}
+}
+
+func (c *CoreHandler) Init(ctx cli.Context) error {
+
+	log.Println("Core handler running!")
+
+	return nil
+}
+
+func (c *CoreHandler) Load() contract.AppLoad {
+	return func(appContext *contract.AppContext) {
+		c.moduleManager = appContext.ModuleManager
+		c.handlerManager = appContext.HandlerManager
+		c.hookManager = appContext.HookManager
+		c.blockManager = appContext.BlockManager
+		c.tokenManger = appContext.TokenManger
+		c.actionManager = appContext.ActionManager
+
+		proto.RegisterCoreServiceServer(appContext.GrpcServer, c)
+	}
+}
+
+func (c CoreHandler) Flag() []cli.Flag {
+
+	return []cli.Flag{}
+}
+
+func (c CoreHandler) Priority() int {
+
+	return 100
+}
+
+func (c *CoreHandler) Context(ctx context.Context) {
+	c.ctx = ctx
+}
+
+func (c CoreHandler) EventStream(req *proto.EventStreamRequest, stream proto.CoreService_EventStreamServer) error {
 
 	token, err := c.checkValidateAndAuth(req.IdModule, req.IdSection, req.MetaData)
 
@@ -33,7 +72,6 @@ func (c CoreHandler) EventStream(req *proto.EventStreamRequest,stream proto.Core
 
 	client := client.NewClientHandler(req.IdSection, token, req.IdModule, stream)
 
-
 	err = c.handlerManager.AddConnect(client)
 
 	if err != nil {
@@ -41,13 +79,14 @@ func (c CoreHandler) EventStream(req *proto.EventStreamRequest,stream proto.Core
 		return errors.New("server_error", errors.SERVER_ERROR)
 	}
 
-
 	for {
 		select {
-			case <- stream.Context().Done() : {
-				return  nil
+		case <-stream.Context().Done():
+			{
+				return nil
 			}
-			case <- c.ctx.Done() : {
+		case <-c.ctx.Done():
+			{
 				return errors.New("server_stop", errors.SERVER_ERROR)
 			}
 		}
@@ -61,8 +100,8 @@ func (c CoreHandler) EventStream(req *proto.EventStreamRequest,stream proto.Core
 func (c CoreHandler) Hooks(stream proto.CoreService_HooksServer) error {
 
 	var (
-		IdModule string
-		token string
+		IdModule  string
+		token     string
 		IdSection string
 	)
 
@@ -73,11 +112,13 @@ func (c CoreHandler) Hooks(stream proto.CoreService_HooksServer) error {
 		checkTimeout := time.Tick(time.Duration(5) * time.Second)
 
 		select {
-			case  <-checkTimeout: {
+		case <-checkTimeout:
+			{
 				errorCheck <- errors.New("timeout_check", errors.TIMEOUT)
 				return
 			}
-			case <- errorCheck: {
+		case <-errorCheck:
+			{
 				return
 			}
 		}
@@ -87,7 +128,7 @@ func (c CoreHandler) Hooks(stream proto.CoreService_HooksServer) error {
 
 		data, err := stream.Recv()
 		if err == io.EOF {
-			errorCheck <-  errors.New("timeout_check", errors.TIMEOUT)
+			errorCheck <- errors.New("timeout_check", errors.TIMEOUT)
 			return
 		}
 		token, err = c.checkValidateAndAuth(data.IdModule, data.IdSection, data.MetaData)
@@ -101,7 +142,7 @@ func (c CoreHandler) Hooks(stream proto.CoreService_HooksServer) error {
 		errorCheck <- nil
 	}()
 
-	err := <- errorCheck
+	err := <-errorCheck
 
 	if err != nil {
 		return err
@@ -133,13 +174,15 @@ func (c CoreHandler) Ping(stream proto.CoreService_PingServer) error {
 		checkTimeout := time.Tick(time.Duration(5) * time.Second)
 
 		select {
-		case  <-checkTimeout: {
-			errorCheck <- errors.New("timeout_check", errors.TIMEOUT)
-			return
-		}
-		case <- errorCheck: {
-			return
-		}
+		case <-checkTimeout:
+			{
+				errorCheck <- errors.New("timeout_check", errors.TIMEOUT)
+				return
+			}
+		case <-errorCheck:
+			{
+				return
+			}
 		}
 	}()
 
@@ -147,7 +190,7 @@ func (c CoreHandler) Ping(stream proto.CoreService_PingServer) error {
 
 		data, err := stream.Recv()
 		if err == io.EOF {
-			errorCheck <-  errors.New("timeout_check", errors.TIMEOUT)
+			errorCheck <- errors.New("timeout_check", errors.TIMEOUT)
 			return
 		}
 		err = c.checkValidateAndExist(data.IdModule, data.IdSection)
@@ -164,12 +207,11 @@ func (c CoreHandler) Ping(stream proto.CoreService_PingServer) error {
 		errorCheck <- nil
 	}()
 
-	err := <- errorCheck
+	err := <-errorCheck
 
 	if err != nil {
 		return err
 	}
-
 
 	for {
 		data, err := stream.Recv()
@@ -178,14 +220,14 @@ func (c CoreHandler) Ping(stream proto.CoreService_PingServer) error {
 		}
 		err = c.moduleManager.Ping(data.IdModule, data.IdSection)
 		if err != nil {
-			return  err
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (c *CoreHandler) Register(ctx context.Context,req *proto.RegisterRequest) (*proto.RegisterResponse, error) {
+func (c *CoreHandler) Register(ctx context.Context, req *proto.RegisterRequest) (*proto.RegisterResponse, error) {
 	module := models.ModuleData{}
 
 	// check block
@@ -208,7 +250,7 @@ func (c *CoreHandler) Register(ctx context.Context,req *proto.RegisterRequest) (
 
 	if err != nil {
 		log.Println(err.Error())
-		return  nil, errors.New("server_error", errors.SERVER_ERROR)
+		return nil, errors.New("server_error", errors.SERVER_ERROR)
 	}
 	if !isAccess {
 		return nil, errors.New("module_not_permission", errors.PERMISSION)
@@ -219,11 +261,11 @@ func (c *CoreHandler) Register(ctx context.Context,req *proto.RegisterRequest) (
 	}
 
 	return &proto.RegisterResponse{
-		IdSection:            sectionId,
+		IdSection: sectionId,
 	}, nil
 }
 
-func (c *CoreHandler) Action(ct context.Context,req *proto.ActionRequest) (*proto.Response, error) {
+func (c *CoreHandler) Action(ct context.Context, req *proto.ActionRequest) (*proto.Response, error) {
 
 	_, err := c.checkValidateAndAuth(req.IdModule, req.IdSection, req.MetaData)
 	if err != nil {
@@ -238,12 +280,12 @@ func (c *CoreHandler) Action(ct context.Context,req *proto.ActionRequest) (*prot
 		return nil, err
 	}
 
-	return &proto.Response {
+	return &proto.Response{
 		Success: true,
 	}, nil
 }
 
-func (c CoreHandler) checkValidateAndAuth(IdModule string, IdSection string, metaData map[string]string) (string,error) {
+func (c CoreHandler) checkValidateAndAuth(IdModule string, IdSection string, metaData map[string]string) (string, error) {
 
 	err := c.checkValidateAndExist(IdModule, IdSection)
 	if err != nil {
@@ -259,14 +301,13 @@ func (c CoreHandler) checkValidateAndAuth(IdModule string, IdSection string, met
 		return "", errors.New("token_not_validate", errors.VALIDATE)
 	}
 
-
 	return token, nil
 }
 
 func (c CoreHandler) checkValidateAndExist(IdModule string, IdSection string) error {
 	// validate data
 	if len(IdModule) == 0 || len(IdSection) == 0 {
-		return  errors.New("data_not_validate", errors.VALIDATE)
+		return errors.New("data_not_validate", errors.VALIDATE)
 	}
 
 	// check block
@@ -274,7 +315,7 @@ func (c CoreHandler) checkValidateAndExist(IdModule string, IdSection string) er
 
 	if err != nil {
 		log.Println(err.Error())
-		return  errors.New("server_error", errors.SERVER_ERROR)
+		return errors.New("server_error", errors.SERVER_ERROR)
 	}
 
 	if !isAccess {
@@ -283,7 +324,7 @@ func (c CoreHandler) checkValidateAndExist(IdModule string, IdSection string) er
 
 	// check module and section
 	if !c.moduleManager.Check(IdModule, IdSection) {
-		return  errors.New("module_or_section_not_found", errors.NOT_FOUND)
+		return errors.New("module_or_section_not_found", errors.NOT_FOUND)
 	}
 
 	return nil

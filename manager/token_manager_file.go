@@ -1,22 +1,22 @@
 package manager
 
 import (
+	"context"
 	"core_x/contract"
 	"core_x/errors"
 	"core_x/models"
 	"core_x/utils"
-	"context"
 	"github.com/urfave/cli/v2"
+	"log"
 	"path"
 )
 
 type TokenManagerFile struct {
-	list map[string]models.Token
-	ctx context.Context
+	list     map[string]models.Token
+	ctx      context.Context
 	fileName string
-	root string
+	root     string
 }
-
 
 func NewTokenManagerFile() contract.IModule {
 	return &TokenManagerFile{
@@ -24,15 +24,14 @@ func NewTokenManagerFile() contract.IModule {
 	}
 }
 
-
-
 func (t *TokenManagerFile) Init(c cli.Context) error {
 	t.fileName = c.String("file_token_manager")
 	t.root = c.String("root")
 
 	t.LoadData()
+	log.Println("Run token manager...")
 
-	return  nil
+	return nil
 }
 
 func (t *TokenManagerFile) Load() contract.AppLoad {
@@ -51,13 +50,12 @@ func (t TokenManagerFile) Flag() []cli.Flag {
 }
 
 func (t TokenManagerFile) Priority() int {
-	return  1
+	return 1
 }
 
 func (t *TokenManagerFile) Context(ctx context.Context) {
 	t.ctx = ctx
 }
-
 
 func (t TokenManagerFile) Save() error {
 	fileNameFullPath := path.Join(t.root, t.fileName)
@@ -83,7 +81,7 @@ func (t TokenManagerFile) CheckAccess(tokenKey string, moduleName string) bool {
 		return false
 	}
 
-	return  utils.MatchStringArray(token.ModuleRule, moduleName)
+	return utils.MatchStringArray(token.ModuleRule, moduleName)
 }
 
 func (t TokenManagerFile) CheckPermissionAction(tokenKey string, action string, isHook bool) bool {
@@ -95,11 +93,11 @@ func (t TokenManagerFile) CheckPermissionAction(tokenKey string, action string, 
 	if isHook {
 		ruleList = token.HookRule
 	}
-	return  utils.MatchStringArray(ruleList, action)
+	return utils.MatchStringArray(ruleList, action)
 }
 
 func (t *TokenManagerFile) Add(token models.Token) error {
-	_, exist :=  t.list[token.Key]
+	_, exist := t.list[token.Key]
 	if exist {
 		return errors.New("Token exist", errors.EXIST)
 	}
@@ -108,7 +106,7 @@ func (t *TokenManagerFile) Add(token models.Token) error {
 }
 
 func (t *TokenManagerFile) Update(token models.Token) error {
-	_, exist :=  t.list[token.Key]
+	_, exist := t.list[token.Key]
 	if !exist {
 		return errors.New("Not found token", errors.NOT_FOUND)
 	}
@@ -117,9 +115,9 @@ func (t *TokenManagerFile) Update(token models.Token) error {
 }
 
 func (t *TokenManagerFile) Delete(tokenKey string) error {
-	_, exist :=  t.list[tokenKey]
+	_, exist := t.list[tokenKey]
 	if !exist {
-		return  errors.New("Not found token", errors.NOT_FOUND)
+		return errors.New("Not found token", errors.NOT_FOUND)
 	}
 	delete(t.list, tokenKey)
 	return t.Save()
@@ -134,11 +132,9 @@ func (t TokenManagerFile) List() ([]models.Token, error) {
 }
 
 func (t TokenManagerFile) Get(tokenKey string) (models.Token, error) {
-	item, exist :=  t.list[tokenKey]
+	item, exist := t.list[tokenKey]
 	if !exist {
 		return models.Token{}, errors.New("Not found token", errors.NOT_FOUND)
 	}
 	return item, nil
 }
-
-

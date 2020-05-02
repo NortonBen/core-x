@@ -1,21 +1,21 @@
 package manager
 
 import (
+	"context"
 	"core_x/contract"
 	"core_x/errors"
 	"core_x/models"
 	"core_x/utils"
-	"context"
 	"github.com/urfave/cli/v2"
+	"log"
 	"path"
 )
-	
-	
+
 type ActionMangerFile struct {
-	list map[string]models.ActionData
-	ctx context.Context
+	list     map[string]models.ActionData
+	ctx      context.Context
 	fileName string
-	root string
+	root     string
 }
 
 func NewActionMangerFile() contract.IModule {
@@ -24,15 +24,14 @@ func NewActionMangerFile() contract.IModule {
 	}
 }
 
-
-
 func (t *ActionMangerFile) Init(c cli.Context) error {
 	t.fileName = c.String("file_action_manager")
 	t.root = c.String("root")
 
 	t.LoadData()
 
-	return  nil
+	log.Println("Run action manager...")
+	return nil
 }
 
 func (t *ActionMangerFile) Load() contract.AppLoad {
@@ -51,7 +50,7 @@ func (t ActionMangerFile) Flag() []cli.Flag {
 }
 
 func (t ActionMangerFile) Priority() int {
-	return  1
+	return 1
 }
 
 func (t *ActionMangerFile) Context(ctx context.Context) {
@@ -79,7 +78,6 @@ func (t *ActionMangerFile) LoadData() error {
 	fileNameFullPath := path.Join(t.root, t.fileName)
 	return utils.LoadFile(fileNameFullPath, &t.list)
 }
-
 
 func (a *ActionMangerFile) HasAction(action string) bool {
 	_, exit := a.list[action]
@@ -131,26 +129,26 @@ func (a *ActionMangerFile) AddHook(action string, module string) error {
 func (a *ActionMangerFile) GetHook(action string) ([]string, error) {
 	item, err := a.Get(action)
 	if err == nil {
-		return  nil, err
+		return nil, err
 	}
-	return  item.HookRegister, nil
+	return item.HookRegister, nil
 }
 
-func (a *ActionMangerFile) GetHandler(action string)  ([]string, error) {
+func (a *ActionMangerFile) GetHandler(action string) ([]string, error) {
 	item, err := a.Get(action)
 	if err == nil {
-		return  nil, err
+		return nil, err
 	}
-	return  item.HandlerRegister, nil
+	return item.HandlerRegister, nil
 }
 
 func (a *ActionMangerFile) RemoveHook(action string, module string) error {
 	item, err := a.Get(action)
-		if err != nil {
-			return err
+	if err != nil {
+		return err
 	}
 
-	var index = -1;
+	var index = -1
 	for i, value := range item.HookRegister {
 		if value == module {
 			index = i
@@ -164,8 +162,8 @@ func (a *ActionMangerFile) RemoveHook(action string, module string) error {
 			Code:    errors.EXIST,
 		}
 	}
-	item.HookRegister  = utils.RemoveItemString(item.HookRegister, index)
-	return  a.Save()
+	item.HookRegister = utils.RemoveItemString(item.HookRegister, index)
+	return a.Save()
 }
 
 func (a *ActionMangerFile) RemoveHandler(action string, module string) error {
@@ -188,8 +186,8 @@ func (a *ActionMangerFile) RemoveHandler(action string, module string) error {
 			Code:    errors.EXIST,
 		}
 	}
-	item.HandlerRegister  = utils.RemoveItemString(item.HandlerRegister, index)
-	return  a.Save()
+	item.HandlerRegister = utils.RemoveItemString(item.HandlerRegister, index)
+	return a.Save()
 }
 
 func (a *ActionMangerFile) HasHandler(action string, module string) (bool, error) {
@@ -198,7 +196,7 @@ func (a *ActionMangerFile) HasHandler(action string, module string) (bool, error
 		return false, err
 	}
 
-	return  utils.ItemExists(item.HandlerRegister, module), nil
+	return utils.ItemExists(item.HandlerRegister, module), nil
 }
 
 func (a *ActionMangerFile) HasHook(action string, module string) (bool, error) {
@@ -207,10 +205,10 @@ func (a *ActionMangerFile) HasHook(action string, module string) (bool, error) {
 		return false, err
 	}
 
-	return  utils.ItemExists(item.HookRegister, module), nil
+	return utils.ItemExists(item.HookRegister, module), nil
 }
 
-func (a *ActionMangerFile) checkPermission(action models.ActionData, module string) error  {
+func (a *ActionMangerFile) checkPermission(action models.ActionData, module string) error {
 	if !utils.MatchStringArray(action.EndPointRule, module) {
 		return errors.Error{
 			Message: "Not Permission Register",

@@ -1,22 +1,23 @@
 package manager
 
 import (
+	"context"
 	"core_x/contract"
 	"core_x/errors"
 	"core_x/models"
 	"core_x/utils"
-	"context"
 	"github.com/urfave/cli/v2"
+	"log"
 	"path"
 	"regexp"
 	"time"
 )
 
 type BlockMangerFile struct {
-	list map[string]models.Block
-	ctx context.Context
+	list     map[string]models.Block
+	ctx      context.Context
 	fileName string
-	root string
+	root     string
 }
 
 func NewBlockMangerFile() contract.IModule {
@@ -25,7 +26,6 @@ func NewBlockMangerFile() contract.IModule {
 	}
 }
 
-
 func (t *BlockMangerFile) Init(c cli.Context) error {
 
 	t.fileName = c.String("file_block_manager")
@@ -33,6 +33,7 @@ func (t *BlockMangerFile) Init(c cli.Context) error {
 
 	t.LoadData()
 
+	log.Println("Run block manager...")
 	return nil
 }
 
@@ -45,7 +46,7 @@ func (t *BlockMangerFile) Load() contract.AppLoad {
 func (t *BlockMangerFile) Flag() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
-			Name: "file_block_manager",
+			Name:        "file_block_manager",
 			DefaultText: "block.json",
 		},
 	}
@@ -82,7 +83,7 @@ func (t BlockMangerFile) Add(block models.Block) error {
 }
 
 func (t *BlockMangerFile) Delete(blockKey string) error {
-	_, exist :=  t.list[blockKey]
+	_, exist := t.list[blockKey]
 	if !exist {
 		return errors.New("Not found token", errors.NOT_FOUND)
 	}
@@ -99,7 +100,7 @@ func (t BlockMangerFile) List() ([]models.Block, error) {
 }
 
 func (t BlockMangerFile) Get(blockKey string) (models.Block, error) {
-	block, exist :=  t.list[blockKey]
+	block, exist := t.list[blockKey]
 	if !exist {
 		return models.Block{}, errors.New("Not found token", errors.NOT_FOUND)
 	}

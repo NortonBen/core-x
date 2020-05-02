@@ -1,6 +1,7 @@
 package main
 
 import (
+	"core_x/handler"
 	"core_x/manager"
 	"github.com/urfave/cli/v2"
 	"log"
@@ -17,14 +18,15 @@ func main() {
 		manager.NewHandlerManager(),
 		manager.NewHookManager(),
 		manager.NewModuleManagerFile(),
+		handler.NewCoreHandler(),
 	)
 
 	app := &cli.App{
-		Name: "Core-X",
-		Usage: "Core of project X",
-		Flags: bootstrap.Flags(),
+		Name:     "Core-X",
+		Usage:    "Core of project X",
+		Flags:    bootstrap.Flags(),
 		Commands: bootstrap.Command(),
-		Action: bootstrap.Action,
+		Action:   bootstrap.Action,
 	}
 
 	err := app.Run(os.Args)
@@ -32,6 +34,3 @@ func main() {
 		log.Fatal(err)
 	}
 }
-
-
-

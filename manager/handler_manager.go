@@ -6,24 +6,24 @@ import (
 	"core_x/contract/proto"
 	"core_x/errors"
 	"github.com/urfave/cli/v2"
+	"log"
 )
 
 type HandlerManager struct {
-	cxt context.Context
+	cxt           context.Context
 	actionManager contract.IActionManager
-	list map[string]contract.IClientHandle
+	list          map[string]contract.IClientHandle
 }
 
-func NewHandlerManager() contract.IModule  {
-	return &HandlerManager {
+func NewHandlerManager() contract.IModule {
+	return &HandlerManager{
 		list: make(map[string]contract.IClientHandle),
 	}
 }
 
-
 func (h HandlerManager) Init(c cli.Context) error {
 
-
+	log.Println("Run handler manager...")
 	return nil
 }
 
@@ -121,4 +121,3 @@ func (h HandlerManager) HasConnect(id string) bool {
 	_, exist := h.list[id]
 	return exist
 }
-

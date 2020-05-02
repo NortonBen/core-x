@@ -1,11 +1,11 @@
 package manager
 
 import (
+	"context"
 	"core_x/contract"
 	"core_x/errors"
 	"core_x/models"
 	"core_x/utils"
-	"context"
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
 	"log"
@@ -15,22 +15,19 @@ import (
 
 type ModuleManagerFile struct {
 	actionManager contract.IActionManager
-	list map[string]models.ModuleData
-	ctx context.Context
-	fileName string
-	root string
-	timeOut time.Duration
+	list          map[string]models.ModuleData
+	ctx           context.Context
+	fileName      string
+	root          string
+	timeOut       time.Duration
 }
-
 
 func NewModuleManagerFile() contract.IModule {
 	return &ModuleManagerFile{
-		list: make(map[string]models.ModuleData),
+		list:    make(map[string]models.ModuleData),
 		timeOut: time.Duration(1) * time.Minute,
 	}
 }
-
-
 
 func (t *ModuleManagerFile) Init(c cli.Context) error {
 	t.fileName = c.String("file_module_manager")
@@ -38,7 +35,8 @@ func (t *ModuleManagerFile) Init(c cli.Context) error {
 
 	t.LoadData()
 
-	return  nil
+	log.Println("Run module manager...")
+	return nil
 }
 
 func (t *ModuleManagerFile) Load() contract.AppLoad {
@@ -58,18 +56,16 @@ func (t ModuleManagerFile) Flag() []cli.Flag {
 }
 
 func (t ModuleManagerFile) Priority() int {
-	return  2
+	return 2
 }
 
 func (t *ModuleManagerFile) Context(ctx context.Context) {
 	t.ctx = ctx
 }
 
-
-
 func (t ModuleManagerFile) Add(module models.ModuleData) (string, error) {
 	if t.Has(module.Id) {
-		return "",  errors.New("Module has exist", errors.EXIST)
+		return "", errors.New("Module has exist", errors.EXIST)
 	}
 	idSection, err := t.CreateNewIdSection()
 	if err != nil {
@@ -94,10 +90,10 @@ func (t *ModuleManagerFile) Update(module models.ModuleData) error {
 	return t.Save()
 }
 
-func (t ModuleManagerFile) Get(moduleName string) (models.ModuleData,error) {
+func (t ModuleManagerFile) Get(moduleName string) (models.ModuleData, error) {
 	module, exist := t.list[moduleName]
 	if !exist {
-		return models.ModuleData{},  errors.New("Not found module", errors.NOT_FOUND)
+		return models.ModuleData{}, errors.New("Not found module", errors.NOT_FOUND)
 	}
 	return module, nil
 }
@@ -121,7 +117,7 @@ func (t ModuleManagerFile) GetListTimeOut() []string {
 	timeCheck := time.Now().Add(0 - t.timeOut)
 	for _, module := range t.list {
 		if module.Time.Before(timeCheck) {
-			list = append(list, module.Id )
+			list = append(list, module.Id)
 		}
 	}
 
@@ -144,13 +140,12 @@ func (t ModuleManagerFile) CreateNewIdSection() (string, error) {
 		}
 	}
 
-
 	return section, nil
 }
 
-func (t ModuleManagerFile) SetState(moduleName string, state models.StateModule)  error {
+func (t ModuleManagerFile) SetState(moduleName string, state models.StateModule) error {
 	module, err := t.Get(moduleName)
-	if err !=nil {
+	if err != nil {
 		return err
 	}
 	module.State = state
@@ -159,7 +154,7 @@ func (t ModuleManagerFile) SetState(moduleName string, state models.StateModule)
 
 func (t ModuleManagerFile) Ping(moduleName string, idSection string) error {
 	module, err := t.Get(moduleName)
-	if err !=nil {
+	if err != nil {
 		return err
 	}
 	if module.Section != idSection {
@@ -172,7 +167,7 @@ func (t ModuleManagerFile) Ping(moduleName string, idSection string) error {
 
 func (t ModuleManagerFile) Check(moduleName string, idSection string) bool {
 	module, err := t.Get(moduleName)
-	if err !=nil {
+	if err != nil {
 		return false
 	}
 	if module.Section != idSection {
@@ -201,7 +196,7 @@ func (t ModuleManagerFile) RegisterProcess(moduleName string) error {
 	for _, action := range module.Actions {
 		err = t.actionManager.Add(*action)
 		if err != nil {
-			log.Print("Have error register action: "+err.Error())
+			log.Print("Have error register action: " + err.Error())
 		}
 	}
 
@@ -209,18 +204,16 @@ func (t ModuleManagerFile) RegisterProcess(moduleName string) error {
 		if register.Type == models.TypeAction_EndPoint {
 			err = t.actionManager.AddHandler(register.Action, moduleName)
 			if err != nil {
-				log.Print("Have error register handler: "+err.Error())
+				log.Print("Have error register handler: " + err.Error())
 			}
 		} else {
 			err = t.actionManager.AddHook(register.Action, moduleName)
 			if err != nil {
-				log.Print("Have error register hook: "+err.Error())
+				log.Print("Have error register hook: " + err.Error())
 			}
 		}
 
 	}
-
-
 
 	return nil
 }
@@ -232,17 +225,16 @@ func (t ModuleManagerFile) DeregisterProcess(moduleName string) error {
 		return err
 	}
 
-
 	for _, register := range module.Registers {
 		if register.Type == models.TypeAction_EndPoint {
 			err = t.actionManager.RemoveHandler(register.Action, moduleName)
 			if err != nil {
-				log.Print("Have error deregister handler: "+err.Error())
+				log.Print("Have error deregister handler: " + err.Error())
 			}
 		} else {
 			err = t.actionManager.RemoveHook(register.Action, moduleName)
 			if err != nil {
-				log.Print("Have error deregister hook: "+err.Error())
+				log.Print("Have error deregister hook: " + err.Error())
 			}
 		}
 

@@ -1,29 +1,29 @@
 package manager
 
 import (
+	"context"
 	"core_x/contract"
 	"core_x/contract/proto"
 	"core_x/errors"
-	"context"
 	"github.com/urfave/cli/v2"
+	"log"
 )
 
 type HookManager struct {
-	cxt context.Context
-	clients map[string]contract.IClientHook
+	cxt          context.Context
+	clients      map[string]contract.IClientHook
 	actionManger contract.IActionManager
 }
 
-func NewHookManager() contract.IModule  {
-	return &HookManager {
+func NewHookManager() contract.IModule {
+	return &HookManager{
 		clients: make(map[string]contract.IClientHook),
 	}
 }
 
-
 func (h HookManager) Init(c cli.Context) error {
 
-
+	log.Println("Run hook manager...")
 	return nil
 }
 
@@ -45,7 +45,6 @@ func (h HookManager) Priority() int {
 func (h *HookManager) Context(ctx context.Context) {
 	h.cxt = ctx
 }
-
 
 func (h HookManager) GetClient(id string) (contract.IClientHook, error) {
 	client, exist := h.clients[id]
@@ -86,7 +85,7 @@ func (h HookManager) SendToModule(ctx context.Context, moduleName string, event 
 	}
 	rs, err := client.RecvWithIdEvent(ctx, event.Id)
 	if err != nil {
-		return  nil, err
+		return nil, err
 	}
 	return rs, nil
 }
@@ -121,8 +120,6 @@ func (h HookManager) Process(event *proto.Event) error {
 		return err
 	}
 
-
-
 	for _, module := range moduleList {
 		ctx := context.Background()
 		if action.TimeOut != 0 {
@@ -143,4 +140,3 @@ func (h HookManager) HaveConnect(id string) bool {
 	_, exist := h.clients[id]
 	return exist
 }
-
