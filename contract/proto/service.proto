@@ -1,0 +1,86 @@
+syntax = "proto3";
+package proto;
+
+service CoreService {
+    rpc EventStream(EventStreamRequest) returns (stream Event){}
+    rpc Hooks(stream HookStream) returns (stream Event){}
+    rpc Ping(stream PingRequest) returns (Response){}
+    rpc Register(RegisterRequest) returns (RegisterResponse){}
+    rpc Action(ActionRequest) returns (Response){}
+}
+
+message ActionRequest {
+    string id_module = 1;
+    string id_section = 2;
+    map<string, string> meta_data = 3;
+    Event data = 4;
+}
+
+message Response {
+    bool success = 1;
+}
+
+message ActionData {
+    string name = 1;
+    uint64 time_out = 2;
+    repeated string end_points = 3;
+    bool enable_hook = 4;
+    bool durable = 5;
+}
+
+enum TypeAction {
+    Hook = 0;
+    EndPoint = 1;
+}
+
+message RegisterAction {
+    TypeAction type = 1;
+    string action = 2;
+    int32 priority = 3;
+    string Description = 4;
+}
+
+message RegisterRequest {
+    string id = 1;
+    string name = 2;
+    string version = 3;
+    repeated string auth = 4;
+    string url = 5;
+    string token = 6;
+    repeated ActionData actions = 7;
+    repeated RegisterAction registers = 8;
+    map<string, string> meta_data = 9;
+}
+
+message RegisterResponse {
+    string id_section = 1;
+}
+
+
+message PingRequest {
+    string id_module = 1;
+    string id_section = 2;
+    string token = 3;
+}
+
+message HookStream {
+    string id_module = 1;
+    string id_section = 2;
+    map<string, string> meta_data = 3;
+    Event data = 4;
+}
+
+message Event {
+    string id = 1;
+    string name = 2;
+    int32 type = 3;
+    uint64 time = 4;
+    map<string, string> header = 5;
+    bytes data = 6;
+}
+
+message EventStreamRequest {
+    string id_module = 1;
+    string id_section = 2;
+    map<string, string> meta_data = 3;
+}
